@@ -12,11 +12,11 @@ function doPost(e) {
     const formData = JSON.parse(e.postData.contents);
     
     // Get the spreadsheet and sheet
-    const sheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_NAME);
+    let sheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_NAME);
     
     // If sheet doesn't exist, create it with headers
     if (!sheet) {
-      createSheet();
+      sheet = createSheet();
     }
     
     // Process and append the data
@@ -41,7 +41,15 @@ function doPost(e) {
 // Function to create sheet with headers if it doesn't exist
 function createSheet() {
   const spreadsheet = SpreadsheetApp.openById(SHEET_ID);
-  const sheet = spreadsheet.insertSheet(SHEET_NAME);
+  
+  // Check if sheet exists first
+  let sheet = spreadsheet.getSheetByName(SHEET_NAME);
+  if (sheet) {
+    return sheet;
+  }
+  
+  // Create new sheet
+  sheet = spreadsheet.insertSheet(SHEET_NAME);
   
   // Define headers based on form fields
   const headers = [
@@ -105,6 +113,16 @@ function createSheet() {
 function appendFormData(sheet, formData) {
   const timestamp = new Date();
   
+  // Handle file upload if present
+  let profilePictureUrl = '';
+  if (formData.profilePictureData) {
+    profilePictureUrl = uploadFile(
+      formData.profilePictureData,
+      formData.profilePictureName || 'profile.jpg',
+      formData.profilePictureMimeType || 'image/jpeg'
+    );
+  }
+  
   // Prepare row data in the correct order
   const rowData = [
     timestamp,
@@ -154,7 +172,7 @@ function appendFormData(sheet, formData) {
     formData.workedWithPrestige || '',
     formData.referredBy || '',
     formData.linkedinProfile || '',
-    formData.profilePictureUrl || ''
+    profilePictureUrl
   ];
   
   // Append the row

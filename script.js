@@ -1,183 +1,23 @@
-// Crew Portal Form JavaScript
+// Crew Portal Form JavaScript - Simplified Version
 // Replace this with your deployed Google Apps Script URL
 const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxVwN3YWvxoXmYh1Qt34-wgzuF9HKVCDYa80jv0dct_-Cfej0Lt9-yA7LiwMr0KGCs5/exec';
 
-let currentSection = 1;
-const totalSections = 7;
-
 // Initialize form on page load
 document.addEventListener('DOMContentLoaded', function() {
-    updateProgressBar();
-    updateNavigationButtons();
-    
-    // Add form submit handler
-    document.getElementById('crewForm').addEventListener('submit', handleSubmit);
-    
-    // Add enter key navigation
-    document.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter' && e.target.type !== 'textarea') {
-            e.preventDefault();
-            const nextBtn = document.getElementById('nextBtn');
-            if (nextBtn.style.display !== 'none') {
-                changeSection(1);
-            }
-        }
-    });
+    const form = document.getElementById('freelancerForm');
+    form.addEventListener('submit', handleSubmit);
 });
-
-// Change form section
-function changeSection(direction) {
-    // Validate current section before moving forward
-    if (direction > 0 && !validateSection(currentSection)) {
-        return;
-    }
-    
-    // Hide current section
-    document.querySelector(`[data-section="${currentSection}"]`).classList.remove('active');
-    
-    // Update section number
-    currentSection += direction;
-    
-    // Show new section
-    document.querySelector(`[data-section="${currentSection}"]`).classList.add('active');
-    
-    // Update UI
-    updateProgressBar();
-    updateNavigationButtons();
-    
-    // Scroll to top of form
-    document.querySelector('.crew-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-// Update progress bar
-function updateProgressBar() {
-    const progress = (currentSection / totalSections) * 100;
-    document.getElementById('progress').style.width = progress + '%';
-}
-
-// Update navigation buttons
-function updateNavigationButtons() {
-    const prevBtn = document.getElementById('prevBtn');
-    const nextBtn = document.getElementById('nextBtn');
-    const submitBtn = document.getElementById('submitBtn');
-    
-    // Show/hide previous button
-    if (currentSection === 1) {
-        prevBtn.style.display = 'none';
-    } else {
-        prevBtn.style.display = 'block';
-    }
-    
-    // Show/hide next/submit buttons
-    if (currentSection === totalSections) {
-        nextBtn.style.display = 'none';
-        submitBtn.style.display = 'block';
-    } else {
-        nextBtn.style.display = 'block';
-        submitBtn.style.display = 'none';
-    }
-}
-
-// Validate section
-function validateSection(sectionNum) {
-    const section = document.querySelector(`[data-section="${sectionNum}"]`);
-    const requiredFields = section.querySelectorAll('[required]');
-    let isValid = true;
-    
-    requiredFields.forEach(field => {
-        if (!field.value.trim()) {
-            showFieldError(field, 'This field is required');
-            isValid = false;
-        } else {
-            clearFieldError(field);
-        }
-        
-        // Email validation
-        if (field.type === 'email' && field.value) {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(field.value)) {
-                showFieldError(field, 'Please enter a valid email address');
-                isValid = false;
-            }
-        }
-        
-        // Phone validation
-        if (field.type === 'tel' && field.value) {
-            const phoneRegex = /^[\d\s\-\(\)\+]+$/;
-            if (!phoneRegex.test(field.value)) {
-                showFieldError(field, 'Please enter a valid phone number');
-                isValid = false;
-            }
-        }
-    });
-    
-    // Check for radio button groups
-    const radioGroups = section.querySelectorAll('.radio-group');
-    radioGroups.forEach(group => {
-        const radios = group.querySelectorAll('input[type="radio"]');
-        if (radios.length > 0 && radios[0].hasAttribute('required')) {
-            const checked = group.querySelector('input[type="radio"]:checked');
-            if (!checked) {
-                showFieldError(group, 'Please select an option');
-                isValid = false;
-            } else {
-                clearFieldError(group);
-            }
-        }
-    });
-    
-    return isValid;
-}
-
-// Show field error
-function showFieldError(field, message) {
-    const formGroup = field.closest('.form-group') || field.closest('.radio-group');
-    if (!formGroup) return;
-    
-    formGroup.classList.add('error');
-    
-    // Remove existing error message
-    const existingError = formGroup.querySelector('.error-text');
-    if (existingError) {
-        existingError.remove();
-    }
-    
-    // Add new error message
-    const errorElement = document.createElement('div');
-    errorElement.className = 'error-text';
-    errorElement.textContent = message;
-    formGroup.appendChild(errorElement);
-}
-
-// Clear field error
-function clearFieldError(field) {
-    const formGroup = field.closest('.form-group') || field.closest('.radio-group');
-    if (!formGroup) return;
-    
-    formGroup.classList.remove('error');
-    const errorElement = formGroup.querySelector('.error-text');
-    if (errorElement) {
-        errorElement.remove();
-    }
-}
 
 // Handle form submission
 async function handleSubmit(e) {
     e.preventDefault();
     
-    // Validate all sections
-    for (let i = 1; i <= totalSections; i++) {
-        if (!validateSection(i)) {
-            // Navigate to first section with errors
-            if (i !== currentSection) {
-                document.querySelector(`[data-section="${currentSection}"]`).classList.remove('active');
-                currentSection = i;
-                document.querySelector(`[data-section="${currentSection}"]`).classList.add('active');
-                updateProgressBar();
-                updateNavigationButtons();
-            }
-            return;
-        }
+    // Clear any previous errors
+    clearAllErrors();
+    
+    // Validate required fields
+    if (!validateForm()) {
+        return;
     }
     
     // Collect form data
@@ -188,7 +28,7 @@ async function handleSubmit(e) {
     
     try {
         // Handle file upload if present
-        const fileInput = document.getElementById('profilePicture');
+        const fileInput = document.getElementById('form-field-field_04f88ef');
         if (fileInput.files.length > 0) {
             const file = fileInput.files[0];
             const base64 = await fileToBase64(file);
@@ -213,46 +53,180 @@ async function handleSubmit(e) {
         
     } catch (error) {
         console.error('Submission error:', error);
-        showError('There was an error submitting your application. Please try again.');
+        showError('Your submission failed because of a server error. Please try again.');
     } finally {
         showLoading(false);
     }
 }
 
-// Collect form data
-function collectFormData() {
-    const form = document.getElementById('crewForm');
-    const formData = {};
+// Validate form
+function validateForm() {
+    let isValid = true;
     
-    // Text inputs
-    const textInputs = form.querySelectorAll('input[type="text"], input[type="email"], input[type="tel"], input[type="url"], textarea');
-    textInputs.forEach(input => {
-        formData[input.name] = input.value.trim();
-    });
-    
-    // Radio buttons
-    const radioGroups = form.querySelectorAll('.radio-group');
-    radioGroups.forEach(group => {
-        const checked = group.querySelector('input[type="radio"]:checked');
-        if (checked) {
-            formData[checked.name] = checked.value;
+    // Check required text fields
+    const requiredFields = document.querySelectorAll('[required]');
+    requiredFields.forEach(field => {
+        if (field.type === 'radio') {
+            // Handle radio buttons separately
+            const radioGroup = document.getElementsByName(field.name);
+            const checked = Array.from(radioGroup).some(radio => radio.checked);
+            if (!checked) {
+                showFieldError(field.closest('.elementor-field-group'), 'This field is required');
+                isValid = false;
+            }
+        } else if (!field.value.trim()) {
+            showFieldError(field, 'This field is required');
+            isValid = false;
         }
     });
     
-    // Checkboxes (collect as arrays)
+    // Validate email
+    const emailField = document.getElementById('form-field-field_57a293b');
+    if (emailField.value && !isValidEmail(emailField.value)) {
+        showFieldError(emailField, 'Please enter a valid email address');
+        isValid = false;
+    }
+    
+    return isValid;
+}
+
+// Collect form data
+function collectFormData() {
+    const form = document.getElementById('freelancerForm');
+    const formData = {};
+    
+    // Get all text inputs, textareas, and selects
+    const inputs = form.querySelectorAll('input[type="text"], input[type="email"], input[type="tel"], input[type="number"], textarea');
+    inputs.forEach(input => {
+        const fieldName = getFieldName(input.name);
+        if (fieldName) {
+            formData[fieldName] = input.value.trim();
+        }
+    });
+    
+    // Get radio buttons
+    const radioGroups = {};
+    const radios = form.querySelectorAll('input[type="radio"]:checked');
+    radios.forEach(radio => {
+        const fieldName = getFieldName(radio.name);
+        if (fieldName) {
+            formData[fieldName] = radio.value;
+        }
+    });
+    
+    // Get checkboxes
     const checkboxGroups = {};
     const checkboxes = form.querySelectorAll('input[type="checkbox"]:checked');
     checkboxes.forEach(checkbox => {
-        if (!checkboxGroups[checkbox.name]) {
-            checkboxGroups[checkbox.name] = [];
+        const fieldName = getFieldName(checkbox.name);
+        if (fieldName) {
+            if (!checkboxGroups[fieldName]) {
+                checkboxGroups[fieldName] = [];
+            }
+            checkboxGroups[fieldName].push(checkbox.value);
         }
-        checkboxGroups[checkbox.name].push(checkbox.value);
     });
     
     // Add checkbox arrays to formData
-    Object.assign(formData, checkboxGroups);
+    Object.keys(checkboxGroups).forEach(key => {
+        formData[key] = checkboxGroups[key];
+    });
     
     return formData;
+}
+
+// Extract field name from form field name
+function getFieldName(formFieldName) {
+    // Convert form_fields[name] to name
+    // Convert form_fields[field_xxx] to corresponding field name
+    const match = formFieldName.match(/form_fields\[(.*?)\]/);
+    if (match) {
+        const fieldId = match[1];
+        return fieldIdToName[fieldId] || fieldId;
+    }
+    return null;
+}
+
+// Map field IDs to readable names
+const fieldIdToName = {
+    'name': 'firstName',
+    'field_6e1a849': 'lastName',
+    'field_5277720': 'streetAddress',
+    'field_02c39d0': 'streetAddress2',
+    'field_ca2a1e3': 'city',
+    'field_6011bd5': 'state',
+    'field_21417d1': 'postalCode',
+    'field_ae34a7d': 'phoneNumber',
+    'field_57a293b': 'email',
+    'field_199cb01': 'audioPositions',
+    'field_a586cdf': 'audioGearOperated',
+    'field_2364333': 'audioYearsExperience',
+    'field_d384eaa': 'audioShowExperience',
+    'field_500e0f4': 'audioStrengths',
+    'field_94c5c80': 'videoPositions',
+    'field_ce5acae': 'videoGearOperated',
+    'field_f120dd5': 'videoYearsExperience',
+    'field_a2fd373': 'videoShowExperience',
+    'field_508b820': 'videoStrengths',
+    'field_2c48fd5': 'lightingPositions',
+    'field_098d5be': 'lightingGearOperated',
+    'field_3a8dac3': 'lightingYearsExperience',
+    'field_fe3d8b9': 'lightingShowExperience',
+    'field_2565b9c': 'lightingStrengths',
+    'field_0184d7d': 'managementPositions',
+    'field_c8197c0': 'managementSkillsets',
+    'field_9a163ea': 'managementYearsExperience',
+    'field_86c97da': 'managementShowExperience',
+    'field_a3b6557': 'managementExperience',
+    'field_e2e8603': 'assistPositions',
+    'field_4cb15ea': 'assistEquipmentComfort',
+    'field_8ee1d31': 'assistYearsExperience',
+    'field_69b7f75': 'assistShowExperience',
+    'field_297d1d9': 'assistMainStrengths',
+    'field_c1a020e': 'companiesWorkedWith',
+    'field_025c58b': 'additionalSkills',
+    'field_2e7849d': 'additionalComments',
+    'field_1ca2066': 'workedWithPrestige',
+    'field_dde637d': 'referredBy',
+    'field_a3996a1': 'linkedinProfile'
+};
+
+// Show field error
+function showFieldError(field, message) {
+    const element = field.nodeType ? field : field.querySelector('input, textarea');
+    if (element) {
+        element.classList.add('field-error');
+    }
+    
+    const formGroup = field.nodeType ? field.closest('.elementor-field-group') : field;
+    
+    // Remove existing error
+    const existingError = formGroup.querySelector('.error-text');
+    if (existingError) {
+        existingError.remove();
+    }
+    
+    // Add new error
+    const errorElement = document.createElement('span');
+    errorElement.className = 'error-text';
+    errorElement.textContent = message;
+    formGroup.appendChild(errorElement);
+}
+
+// Clear all errors
+function clearAllErrors() {
+    document.querySelectorAll('.field-error').forEach(field => {
+        field.classList.remove('field-error');
+    });
+    document.querySelectorAll('.error-text').forEach(error => {
+        error.remove();
+    });
+}
+
+// Email validation
+function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
 }
 
 // Convert file to base64
@@ -271,103 +245,36 @@ function fileToBase64(file) {
 
 // Show loading state
 function showLoading(show) {
-    const form = document.getElementById('crewForm');
+    const form = document.getElementById('freelancerForm');
     const submitBtn = document.getElementById('submitBtn');
+    const submitText = submitBtn.querySelector('.elementor-button-text');
     
     if (show) {
         form.classList.add('loading');
         submitBtn.disabled = true;
-        submitBtn.textContent = 'Submitting...';
-        
-        // Add spinner
-        const spinner = document.createElement('div');
-        spinner.className = 'spinner';
-        spinner.id = 'formSpinner';
-        form.appendChild(spinner);
+        submitText.textContent = 'Submitting...';
     } else {
         form.classList.remove('loading');
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Submit Application';
-        
-        // Remove spinner
-        const spinner = document.getElementById('formSpinner');
-        if (spinner) {
-            spinner.remove();
-        }
+        submitText.textContent = 'Submit';
     }
 }
 
 // Show success message
 function showSuccess() {
-    document.getElementById('crewForm').style.display = 'none';
+    document.getElementById('freelancerForm').parentElement.style.display = 'none';
     document.getElementById('successMessage').style.display = 'block';
     
     // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    
-    // Reset form for potential resubmission
-    setTimeout(() => {
-        document.getElementById('crewForm').reset();
-        currentSection = 1;
-        updateProgressBar();
-        updateNavigationButtons();
-    }, 1000);
 }
 
 // Show error message
 function showError(message) {
     document.getElementById('errorText').textContent = message;
-    document.getElementById('crewForm').style.display = 'none';
+    document.getElementById('freelancerForm').parentElement.style.display = 'none';
     document.getElementById('errorMessage').style.display = 'block';
     
     // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    
-    // Allow retry after 3 seconds
-    setTimeout(() => {
-        document.getElementById('errorMessage').style.display = 'none';
-        document.getElementById('crewForm').style.display = 'block';
-    }, 3000);
 }
-
-// Add smooth transitions for better UX
-document.addEventListener('DOMContentLoaded', function() {
-    // Add input focus animations
-    const inputs = document.querySelectorAll('input, textarea');
-    inputs.forEach(input => {
-        input.addEventListener('focus', function() {
-            this.parentElement.classList.add('focused');
-        });
-        
-        input.addEventListener('blur', function() {
-            this.parentElement.classList.remove('focused');
-            // Clear error on blur if field is now valid
-            if (this.value.trim()) {
-                clearFieldError(this);
-            }
-        });
-    });
-    
-    // File input preview
-    const fileInput = document.getElementById('profilePicture');
-    fileInput.addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (file) {
-            // Validate file size (5MB limit)
-            if (file.size > 5 * 1024 * 1024) {
-                showFieldError(this, 'File size must be less than 5MB');
-                this.value = '';
-                return;
-            }
-            
-            // Validate file type
-            if (!file.type.startsWith('image/')) {
-                showFieldError(this, 'Please upload an image file');
-                this.value = '';
-                return;
-            }
-            
-            clearFieldError(this);
-        }
-    });
-});
