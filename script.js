@@ -1,6 +1,6 @@
 // Crew Portal Form JavaScript - Simplified Version
 // Replace this with your deployed Google Apps Script URL
-const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxVwN3YWvxoXmYh1Qt34-wgzuF9HKVCDYa80jv0dct_-Cfej0Lt9-yA7LiwMr0KGCs5/exec';
+const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxtpezLrqs8aIVN0hj62zduP3OPO5NX7kLIBUmkrfE4n_l8Jo68rua9mHEUdByqNEi3/exec';
 
 // Initialize form on page load
 document.addEventListener('DOMContentLoaded', function() {
@@ -37,6 +37,9 @@ async function handleSubmit(e) {
             formData.profilePictureMimeType = file.type;
         }
         
+        // Log form data for debugging
+        console.log('Submitting form data:', formData);
+        
         // Submit to Google Apps Script
         const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
             method: 'POST',
@@ -49,6 +52,7 @@ async function handleSubmit(e) {
         
         // Since we're using no-cors, we can't read the response
         // Assume success if no error is thrown
+        console.log('Form submitted successfully');
         showSuccess();
         
     } catch (error) {
