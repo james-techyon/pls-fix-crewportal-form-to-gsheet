@@ -13,6 +13,26 @@
             <p>Prestige Labor Solutions</p>
         </header>
 
+        <!-- Success Message -->
+        <div id="successMessage" class="message success-message" style="display: none;">
+            <div class="success-icon">✓</div>
+            <h2>Application Submitted Successfully!</h2>
+            <p>Thank you for submitting your application to Prestige Labor Solutions.</p>
+            <p>We have received your information and will review it shortly. If your qualifications match our current needs, a member of our team will contact you.</p>
+            <button class="elementor-button elementor-size-sm" onclick="window.location.href='https://prestigelaborsolutions.com/crew-portal/'">
+                <span class="elementor-button-content-wrapper">
+                    <span class="elementor-button-text">Return to Crew Portal</span>
+                </span>
+            </button>
+        </div>
+
+        <!-- Error Message -->
+        <div id="errorMessage" class="message error-message" style="display: none;">
+            <h2>Submission Failed</h2>
+            <p id="errorText">Your submission failed because of a server error. Your submission failed because of an error.</p>
+            <button class="elementor-button elementor-size-sm" onclick="location.reload()">Try Again</button>
+        </div>
+
         <form class="elementor-form" id="freelancerForm" method="post" name="New Form">
             <input type="hidden" name="post_id" value="3769">
             <input type="hidden" name="form_id" value="4102454">
@@ -347,26 +367,6 @@
                 </div>
             </div>
         </form>
-
-        <!-- Success Message -->
-        <div id="successMessage" class="message success-message" style="display: none;">
-            <div class="success-icon">✓</div>
-            <h2>Application Submitted Successfully!</h2>
-            <p>Thank you for submitting your application to Prestige Labor Solutions.</p>
-            <p>We have received your information and will review it shortly. If your qualifications match our current needs, a member of our team will contact you.</p>
-            <button class="elementor-button elementor-size-sm" onclick="window.location.href='https://prestigelaborsolutions.com/crew-portal/'">
-                <span class="elementor-button-content-wrapper">
-                    <span class="elementor-button-text">Return to Crew Portal</span>
-                </span>
-            </button>
-        </div>
-
-        <!-- Error Message -->
-        <div id="errorMessage" class="message error-message" style="display: none;">
-            <h2>Submission Failed</h2>
-            <p id="errorText">Your submission failed because of a server error. Your submission failed because of an error.</p>
-            <button class="elementor-button elementor-size-sm" onclick="location.reload()">Try Again</button>
-        </div>
     </div>
 
     <script src="script.js"></script>

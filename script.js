@@ -266,7 +266,6 @@ function showLoading(show) {
 
 // Show success message
 function showSuccess() {
-    document.getElementById('freelancerForm').style.display = 'none';
     document.getElementById('successMessage').style.display = 'block';
     
     // Scroll to top
@@ -276,7 +275,6 @@ function showSuccess() {
 // Show error message
 function showError(message) {
     document.getElementById('errorText').textContent = message;
-    document.getElementById('freelancerForm').style.display = 'none';
     document.getElementById('errorMessage').style.display = 'block';
     
     // Scroll to top
