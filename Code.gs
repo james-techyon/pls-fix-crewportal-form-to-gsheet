@@ -6,6 +6,14 @@ const SHEET_ID = '1Z1NTy7di7Xx4M5j1Ji4dKdjMymwcwOOnYbMxUWa4SMI';
 const RAW_SHEET_NAME = 'Raw Submissions';
 const OPS_SHEET_NAME = 'Operations Ready';
 
+// Email notification configuration
+const EMAIL_CONFIG = {
+  to: 'james@techyon.com',        // Primary recipient
+  cc: 'jmichaeldeseno@gmail.com', // CC recipient(s) - can be comma-separated list
+  sendToApplicant: true,           // Whether to also send confirmation to applicant
+  sendToAdmins: true               // Whether to send notification to admin emails above
+};
+
 // Main function to handle POST requests
 function doPost(e) {
   try {
@@ -42,10 +50,8 @@ function doPost(e) {
     // Transform and append to Operations Ready sheet
     const opsRow = appendTransformedData(opsSheet, formData, profilePictureUrl);
     
-    // Send confirmation email if requested
-    if (formData.email) {
-      sendConfirmationEmail(formData);
-    }
+    // Send email notifications
+    sendEmailNotifications(formData, rawRow, opsRow);
     
     // Return success response
     return ContentService.createTextOutput(JSON.stringify({
@@ -452,8 +458,21 @@ function arrayToString(arr) {
   return arr.join(', ');
 }
 
-// Function to send confirmation email
-function sendConfirmationEmail(formData) {
+// Function to send email notifications
+function sendEmailNotifications(formData, rawRow, opsRow) {
+  // Send confirmation to applicant if configured
+  if (EMAIL_CONFIG.sendToApplicant && formData.email) {
+    sendApplicantConfirmation(formData);
+  }
+  
+  // Send notification to admins if configured
+  if (EMAIL_CONFIG.sendToAdmins && EMAIL_CONFIG.to) {
+    sendAdminNotification(formData, rawRow, opsRow);
+  }
+}
+
+// Function to send confirmation email to applicant
+function sendApplicantConfirmation(formData) {
   const subject = 'Prestige Labor Solutions - Application Received';
   const body = `
 Dear ${formData.firstName} ${formData.lastName},
@@ -475,7 +494,164 @@ Prestige Labor Solutions Team
   try {
     MailApp.sendEmail(formData.email, subject, body);
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error('Error sending applicant email:', error);
+  }
+}
+
+// Function to send notification email to admins
+function sendAdminNotification(formData, rawRow, opsRow) {
+  const fullName = (formData.firstName || '') + ' ' + (formData.lastName || '');
+  const timestamp = new Date().toLocaleString();
+  
+  // Collect key skills
+  const skills = [];
+  if (formData.audioPositions && formData.audioPositions.length > 0) {
+    skills.push('Audio: ' + arrayToString(formData.audioPositions));
+  }
+  if (formData.videoPositions && formData.videoPositions.length > 0) {
+    skills.push('Video: ' + arrayToString(formData.videoPositions));
+  }
+  if (formData.lightingPositions && formData.lightingPositions.length > 0) {
+    skills.push('Lighting: ' + arrayToString(formData.lightingPositions));
+  }
+  if (formData.managementPositions && formData.managementPositions.length > 0) {
+    skills.push('Management: ' + arrayToString(formData.managementPositions));
+  }
+  
+  // Determine experience level
+  const experience = getHighestExperience([
+    formData.audioYearsExperience,
+    formData.videoYearsExperience,
+    formData.lightingYearsExperience,
+    formData.managementYearsExperience,
+    formData.assistYearsExperience
+  ]);
+  
+  const subject = `New Freelancer Application: ${fullName}`;
+  
+  const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .header { background-color: #f39c12; color: white; padding: 20px; border-radius: 5px; }
+    .section { margin: 20px 0; padding: 15px; background-color: #f5f5f5; border-radius: 5px; }
+    .field { margin: 10px 0; }
+    .label { font-weight: bold; color: #555; }
+    .value { color: #000; }
+    .skills { background-color: #e8f4f8; padding: 10px; border-left: 4px solid #3498db; margin: 10px 0; }
+    .footer { margin-top: 30px; padding: 15px; background-color: #2c3e50; color: white; border-radius: 5px; }
+    .button { display: inline-block; padding: 10px 20px; background-color: #27ae60; color: white; text-decoration: none; border-radius: 5px; margin: 10px 5px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h2>New Freelancer Application Received</h2>
+    <p>Submitted: ${timestamp}</p>
+  </div>
+  
+  <div class="section">
+    <h3>Applicant Information</h3>
+    <div class="field">
+      <span class="label">Name:</span> <span class="value">${fullName}</span>
+    </div>
+    <div class="field">
+      <span class="label">Email:</span> <span class="value">${formData.email || 'Not provided'}</span>
+    </div>
+    <div class="field">
+      <span class="label">Phone:</span> <span class="value">${formData.phoneNumber || 'Not provided'}</span>
+    </div>
+    <div class="field">
+      <span class="label">Location:</span> <span class="value">${formData.city || 'N/A'}, ${formData.state || 'N/A'}</span>
+    </div>
+    <div class="field">
+      <span class="label">Years of Experience:</span> <span class="value">${experience || 'Not specified'}</span>
+    </div>
+  </div>
+  
+  <div class="section">
+    <h3>Skills & Positions</h3>
+    <div class="skills">
+      ${skills.length > 0 ? skills.map(skill => `<div>• ${skill}</div>`).join('') : '<div>No specific positions selected</div>'}
+    </div>
+  </div>
+  
+  <div class="section">
+    <h3>Additional Information</h3>
+    <div class="field">
+      <span class="label">Companies Worked With:</span> <span class="value">${formData.companiesWorkedWith || 'Not specified'}</span>
+    </div>
+    <div class="field">
+      <span class="label">Worked with Prestige Before:</span> <span class="value">${formData.workedWithPrestige || 'No'}</span>
+    </div>
+    <div class="field">
+      <span class="label">Referred By:</span> <span class="value">${formData.referredBy || 'Not specified'}</span>
+    </div>
+    <div class="field">
+      <span class="label">LinkedIn:</span> <span class="value">${formData.linkedinProfile || 'Not provided'}</span>
+    </div>
+  </div>
+  
+  ${formData.additionalComments ? `
+  <div class="section">
+    <h3>Additional Comments</h3>
+    <p>${formData.additionalComments}</p>
+  </div>
+  ` : ''}
+  
+  <div class="footer">
+    <h3>Quick Actions</h3>
+    <a href="https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit#gid=0" class="button">View in Google Sheets</a>
+    <p style="margin-top: 15px; font-size: 12px;">
+      Raw data saved in row ${rawRow} of "Raw Submissions" sheet<br>
+      Processed data saved in row ${opsRow} of "Operations Ready" sheet
+    </p>
+  </div>
+</body>
+</html>
+  `;
+  
+  const plainBody = `
+New Freelancer Application Received
+
+Applicant: ${fullName}
+Email: ${formData.email || 'Not provided'}
+Phone: ${formData.phoneNumber || 'Not provided'}
+Location: ${formData.city || 'N/A'}, ${formData.state || 'N/A'}
+Experience: ${experience || 'Not specified'}
+
+Skills:
+${skills.length > 0 ? skills.join('\n') : 'No specific positions selected'}
+
+Companies Worked With: ${formData.companiesWorkedWith || 'Not specified'}
+Worked with Prestige Before: ${formData.workedWithPrestige || 'No'}
+Referred By: ${formData.referredBy || 'Not specified'}
+
+View in Google Sheets: https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit
+
+Raw data: Row ${rawRow} of "Raw Submissions" sheet
+Processed data: Row ${opsRow} of "Operations Ready" sheet
+  `;
+  
+  try {
+    // Prepare email options
+    const emailOptions = {
+      to: EMAIL_CONFIG.to,
+      subject: subject,
+      body: plainBody,
+      htmlBody: htmlBody
+    };
+    
+    // Add CC if configured
+    if (EMAIL_CONFIG.cc) {
+      emailOptions.cc = EMAIL_CONFIG.cc;
+    }
+    
+    // Send the email
+    MailApp.sendEmail(emailOptions);
+  } catch (error) {
+    console.error('Error sending admin notification:', error);
   }
 }
 
