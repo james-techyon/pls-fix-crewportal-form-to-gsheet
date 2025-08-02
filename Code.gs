@@ -3,7 +3,8 @@
 
 // Configuration
 const SHEET_ID = '1Z1NTy7di7Xx4M5j1Ji4dKdjMymwcwOOnYbMxUWa4SMI';
-const SHEET_NAME = 'Form Responses'; // Update this to match your sheet name
+const RAW_SHEET_NAME = 'Raw Submissions';
+const OPS_SHEET_NAME = 'Operations Ready';
 
 // Main function to handle POST requests
 function doPost(e) {
@@ -11,22 +12,47 @@ function doPost(e) {
     // Parse the form data
     const formData = JSON.parse(e.postData.contents);
     
-    // Get the spreadsheet and sheet
-    let sheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_NAME);
+    // Get the spreadsheet
+    const spreadsheet = SpreadsheetApp.openById(SHEET_ID);
     
-    // If sheet doesn't exist, create it with headers
-    if (!sheet) {
-      sheet = createSheet();
+    // Get or create both sheets
+    let rawSheet = spreadsheet.getSheetByName(RAW_SHEET_NAME);
+    if (!rawSheet) {
+      rawSheet = createRawSheet(spreadsheet);
     }
     
-    // Process and append the data
-    const result = appendFormData(sheet, formData);
+    let opsSheet = spreadsheet.getSheetByName(OPS_SHEET_NAME);
+    if (!opsSheet) {
+      opsSheet = createOpsSheet(spreadsheet);
+    }
+    
+    // Handle file upload if present
+    let profilePictureUrl = '';
+    if (formData.profilePictureData) {
+      profilePictureUrl = uploadFile(
+        formData.profilePictureData,
+        formData.profilePictureName || 'profile.jpg',
+        formData.profilePictureMimeType || 'image/jpeg'
+      );
+    }
+    
+    // Append raw data to Raw Submissions sheet
+    const rawRow = appendRawData(rawSheet, formData, profilePictureUrl);
+    
+    // Transform and append to Operations Ready sheet
+    const opsRow = appendTransformedData(opsSheet, formData, profilePictureUrl);
+    
+    // Send confirmation email if requested
+    if (formData.email) {
+      sendConfirmationEmail(formData);
+    }
     
     // Return success response
     return ContentService.createTextOutput(JSON.stringify({
       status: 'success',
       message: 'Form submitted successfully',
-      row: result
+      rawRow: rawRow,
+      opsRow: opsRow
     })).setMimeType(ContentService.MimeType.JSON);
     
   } catch (error) {
@@ -38,20 +64,12 @@ function doPost(e) {
   }
 }
 
-// Function to create sheet with headers if it doesn't exist
-function createSheet() {
-  const spreadsheet = SpreadsheetApp.openById(SHEET_ID);
-  
-  // Check if sheet exists first
-  let sheet = spreadsheet.getSheetByName(SHEET_NAME);
-  if (sheet) {
-    return sheet;
-  }
-  
+// Function to create Raw Submissions sheet with headers
+function createRawSheet(spreadsheet) {
   // Create new sheet
-  sheet = spreadsheet.insertSheet(SHEET_NAME);
+  const sheet = spreadsheet.insertSheet(RAW_SHEET_NAME);
   
-  // Define headers to match Website Submissions tab exactly
+  // Define raw headers (unchanged form data)
   const headers = [
     'Timestamp',
     'First Name',
@@ -65,41 +83,42 @@ function createSheet() {
     'Email',
     // Audio Section
     'Audio Positions',
-    'Please Select All Gear That You Operate',
-    'Years of Experience',
+    'Audio Gear Operated',
+    'Audio Years Experience',
     'Audio Shows',
-    'Main Strengths',
+    'Audio Main Strengths',
     // Video Section  
     'Video Positions',
-    'Please Select All Gear That You Operate',
-    'Years of Experience',
+    'Video Gear Operated',
+    'Video Years Experience',
     'Video Shows',
-    'Main Strengths',
+    'Video Main Strengths',
     // Lighting Section
     'Lighting Positions',
-    'Please Select All Gear That You Operate',
-    'Years of Experience',
+    'Lighting Gear Operated',
+    'Lighting Years Experience',
     'Lighting Shows',
-    'Main Strengths',
+    'Lighting Main Strengths',
     // Management Section
     'Management Positions',
     'Management Skillsets',
-    'Years of Experience',
-    'Shows',
-    'Experience',
+    'Management Years Experience',
+    'Management Shows',
+    'Management Experience',
     // Assist Positions Section
     'Assist Positions',
     'Equipment Comfort Level',
-    'Years of Experience',
-    'Shows',
-    'Main Strengths',
+    'Assist Years Experience',
+    'Assist Shows',
+    'Assist Main Strengths',
     // Additional Info
-    'What companies have you worked with',
+    'Companies Worked With',
     'Additional Skills',
     'Additional Comments',
-    'Have You Worked With Prestige Before?',
+    'Worked With Prestige Before',
     'Referred By',
-    'LinkedIn Profile'
+    'LinkedIn Profile',
+    'Profile Picture URL'
   ];
   
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
@@ -108,80 +127,323 @@ function createSheet() {
   return sheet;
 }
 
-// Function to append form data to sheet
-function appendFormData(sheet, formData) {
-  const timestamp = new Date();
+// Function to create Operations Ready sheet with transformed headers
+function createOpsSheet(spreadsheet) {
+  // Create new sheet
+  const sheet = spreadsheet.insertSheet(OPS_SHEET_NAME);
   
-  // Handle file upload if present
-  let profilePictureUrl = '';
-  if (formData.profilePictureData) {
-    profilePictureUrl = uploadFile(
-      formData.profilePictureData,
-      formData.profilePictureName || 'profile.jpg',
-      formData.profilePictureMimeType || 'image/jpeg'
-    );
-  }
-  
-  // Prepare row data matching the exact Website Submissions tab structure
-  const rowData = [
-    timestamp,                                          // Timestamp
-    formData.firstName || '',                          // First Name
-    formData.lastName || '',                           // Last Name
-    formData.streetAddress || '',                      // Street Address
-    formData.streetAddress2 || '',                     // Street Address Line 2
-    formData.city || '',                               // City
-    formData.state || '',                              // State / Province
-    formData.postalCode || '',                         // Postal / Zip Code
-    formData.phoneNumber || '',                        // Phone Number
-    formData.email || '',                              // Email
-    // Audio Section
-    arrayToString(formData.audioPositions),            // Audio Positions
-    arrayToString(formData.audioGearOperated),         // Please Select All Gear That You Operate
-    formData.audioYearsExperience || '',               // Years of Experience
-    arrayToString(formData.audioShowExperience),       // Audio Shows
-    formData.audioStrengths || '',                     // Main Strengths
-    // Video Section
-    arrayToString(formData.videoPositions),            // Video Positions
-    arrayToString(formData.videoGearOperated),         // Please Select All Gear That You Operate
-    formData.videoYearsExperience || '',               // Years of Experience
-    arrayToString(formData.videoShowExperience),       // Video Shows
-    formData.videoStrengths || '',                     // Main Strengths
-    // Lighting Section
-    arrayToString(formData.lightingPositions),         // Lighting Positions
-    arrayToString(formData.lightingGearOperated),      // Please Select All Gear That You Operate
-    formData.lightingYearsExperience || '',            // Years of Experience
-    arrayToString(formData.lightingShowExperience),    // Lighting Shows
-    formData.lightingStrengths || '',                  // Main Strengths
-    // Management Section
-    arrayToString(formData.managementPositions),       // Management Positions
-    arrayToString(formData.managementSkillsets),       // Management Skillsets
-    formData.managementYearsExperience || '',          // Years of Experience
-    arrayToString(formData.managementShowExperience),  // Shows
-    formData.managementExperience || '',               // Experience
-    // Assist Positions Section
-    arrayToString(formData.assistPositions),           // Assist Positions
-    formData.assistEquipmentComfort || '',             // Equipment Comfort Level
-    formData.assistYearsExperience || '',              // Years of Experience
-    arrayToString(formData.assistShowExperience),      // Shows
-    formData.assistMainStrengths || '',                // Main Strengths
-    // Additional Info
-    formData.companiesWorkedWith || '',                // What companies have you worked with
-    formData.additionalSkills || '',                   // Additional Skills
-    formData.additionalComments || '',                 // Additional Comments
-    formData.workedWithPrestige || '',                 // Have You Worked With Prestige Before?
-    formData.referredBy || '',                         // Referred By
-    formData.linkedinProfile || ''                     // LinkedIn Profile
+  // Define operations headers (matching reference table structure)
+  const headers = [
+    'Submitted on',
+    'Full Name',
+    'Company Name if any',
+    'Phone',
+    'Email',
+    'Direct Deposit ACH Request Form',
+    'W - 9 form',
+    'PLS Independent Contractor Agreement Rev',
+    'Notes',
+    'General',
+    'Audio',
+    'Video',
+    'Lighting',
+    'LED',
+    'Projection',
+    'Scenic',
+    'Camera',
+    'Information Technology',
+    'Breakout',
+    'Computer',
+    'Leadership',
+    'Equipment Operator',
+    'Years of Experience',
+    'Billing Address',
+    'What State Do You Live In?',
+    'Major Cities You Work As A Local',
+    'How did you hear about us',
+    'Rates',
+    'Onboarding Docs Status',
+    'Quickbooks Singup Status',
+    'Chase Vendor Status',
+    'Organized in Contacts & by State',
+    'covid vaccination card',
+    'Onsite Ranking',
+    'Lead Proformance',
+    'select',
+    'checkbox',
+    'Docusign',
+    'GOOGLE review'
   ];
   
-  // Append the row
-  sheet.appendRow(rowData);
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
   
-  // Send confirmation email if requested
-  if (formData.email) {
-    sendConfirmationEmail(formData);
+  return sheet;
+}
+
+// Function to append raw data to Raw Submissions sheet
+function appendRawData(sheet, formData, profilePictureUrl) {
+  const timestamp = new Date();
+  
+  // Direct mapping of form data without transformation
+  const rowData = [
+    timestamp,
+    formData.firstName || '',
+    formData.lastName || '',
+    formData.streetAddress || '',
+    formData.streetAddress2 || '',
+    formData.city || '',
+    formData.state || '',
+    formData.postalCode || '',
+    formData.phoneNumber || '',
+    formData.email || '',
+    // Audio Section
+    arrayToString(formData.audioPositions),
+    arrayToString(formData.audioGearOperated),
+    formData.audioYearsExperience || '',
+    arrayToString(formData.audioShowExperience),
+    formData.audioStrengths || '',
+    // Video Section
+    arrayToString(formData.videoPositions),
+    arrayToString(formData.videoGearOperated),
+    formData.videoYearsExperience || '',
+    arrayToString(formData.videoShowExperience),
+    formData.videoStrengths || '',
+    // Lighting Section
+    arrayToString(formData.lightingPositions),
+    arrayToString(formData.lightingGearOperated),
+    formData.lightingYearsExperience || '',
+    arrayToString(formData.lightingShowExperience),
+    formData.lightingStrengths || '',
+    // Management Section
+    arrayToString(formData.managementPositions),
+    arrayToString(formData.managementSkillsets),
+    formData.managementYearsExperience || '',
+    arrayToString(formData.managementShowExperience),
+    formData.managementExperience || '',
+    // Assist Positions Section
+    arrayToString(formData.assistPositions),
+    formData.assistEquipmentComfort || '',
+    formData.assistYearsExperience || '',
+    arrayToString(formData.assistShowExperience),
+    formData.assistMainStrengths || '',
+    // Additional Info
+    formData.companiesWorkedWith || '',
+    formData.additionalSkills || '',
+    formData.additionalComments || '',
+    formData.workedWithPrestige || '',
+    formData.referredBy || '',
+    formData.linkedinProfile || '',
+    profilePictureUrl
+  ];
+  
+  sheet.appendRow(rowData);
+  return sheet.getLastRow();
+}
+
+// Function to append transformed data to Operations Ready sheet
+function appendTransformedData(sheet, formData, profilePictureUrl) {
+  const timestamp = new Date();
+  
+  // Combine first and last name
+  const fullName = ((formData.firstName || '') + ' ' + (formData.lastName || '')).trim();
+  
+  // Combine address fields
+  const billingAddress = [
+    formData.streetAddress,
+    formData.streetAddress2,
+    formData.city,
+    formData.state,
+    formData.postalCode
+  ].filter(Boolean).join(', ');
+  
+  // Get highest experience level
+  const yearsOfExperience = getHighestExperience([
+    formData.audioYearsExperience,
+    formData.videoYearsExperience,
+    formData.lightingYearsExperience,
+    formData.managementYearsExperience,
+    formData.assistYearsExperience
+  ]);
+  
+  // Map skills to categories
+  const skills = mapSkillCategories(formData);
+  
+  // Combine notes from all strength/experience fields
+  const notes = [
+    formData.additionalComments,
+    formData.audioStrengths ? 'Audio: ' + formData.audioStrengths : '',
+    formData.videoStrengths ? 'Video: ' + formData.videoStrengths : '',
+    formData.lightingStrengths ? 'Lighting: ' + formData.lightingStrengths : '',
+    formData.managementExperience ? 'Management: ' + formData.managementExperience : '',
+    formData.assistMainStrengths ? 'Assist: ' + formData.assistMainStrengths : ''
+  ].filter(Boolean).join(' | ');
+  
+  // Transformed row data
+  const rowData = [
+    timestamp,                                    // Submitted on
+    fullName,                                     // Full Name
+    formData.companiesWorkedWith || '',          // Company Name if any
+    formData.phoneNumber || '',                  // Phone
+    formData.email || '',                        // Email
+    '',                                           // Direct Deposit ACH Request Form
+    '',                                           // W - 9 form
+    '',                                           // PLS Independent Contractor Agreement Rev
+    notes,                                        // Notes
+    skills.general || '',                        // General
+    skills.audio || '',                          // Audio
+    skills.video || '',                          // Video
+    skills.lighting || '',                       // Lighting
+    skills.led || '',                            // LED
+    skills.projection || '',                     // Projection
+    skills.scenic || '',                         // Scenic
+    skills.camera || '',                         // Camera
+    skills.it || '',                             // Information Technology
+    skills.breakout || '',                       // Breakout
+    skills.computer || '',                       // Computer
+    skills.leadership || '',                     // Leadership
+    skills.equipment || '',                      // Equipment Operator
+    yearsOfExperience,                           // Years of Experience
+    billingAddress,                              // Billing Address
+    formData.state || '',                        // What State Do You Live In?
+    formData.city || '',                         // Major Cities You Work As A Local
+    formData.referredBy || '',                   // How did you hear about us
+    '',                                           // Rates
+    '',                                           // Onboarding Docs Status
+    '',                                           // Quickbooks Singup Status
+    '',                                           // Chase Vendor Status
+    '',                                           // Organized in Contacts & by State
+    profilePictureUrl,                           // covid vaccination card (using profile pic)
+    '',                                           // Onsite Ranking
+    '',                                           // Lead Proformance
+    '',                                           // select
+    '',                                           // checkbox
+    '',                                           // Docusign
+    ''                                            // GOOGLE review
+  ];
+  
+  sheet.appendRow(rowData);
+  return sheet.getLastRow();
+}
+
+// Helper function to get highest experience level
+function getHighestExperience(experienceFields) {
+  const experienceOrder = ['10+ Years', '5 - 10 Years', '2 - 4 Years', '0 - 1 Years'];
+  
+  for (let level of experienceOrder) {
+    for (let field of experienceFields) {
+      if (field && field.includes(level)) {
+        return level;
+      }
+    }
   }
   
-  return sheet.getLastRow();
+  // Return first non-empty experience if pattern doesn't match
+  for (let field of experienceFields) {
+    if (field) return field;
+  }
+  
+  return '';
+}
+
+// Helper function to map skills to categories
+function mapSkillCategories(formData) {
+  const categories = {
+    general: [],
+    audio: [],
+    video: [],
+    lighting: [],
+    led: [],
+    projection: [],
+    scenic: [],
+    camera: [],
+    it: [],
+    breakout: [],
+    computer: [],
+    leadership: [],
+    equipment: []
+  };
+  
+  // Add general categories
+  categories.general.push('Stagehand', 'AV Technician');
+  
+  // Map audio positions
+  if (formData.audioPositions && formData.audioPositions.length > 0) {
+    categories.audio = formData.audioPositions.map(pos => {
+      if (pos.includes('A1')) return 'Audio Engineer (A1)';
+      if (pos.includes('A2')) return 'Audio Engineer (A2)';
+      if (pos.includes('RF')) return 'Wireless Frequency Coordinator';
+      return 'Audio Technician';
+    });
+  }
+  
+  // Map video positions
+  if (formData.videoPositions && formData.videoPositions.length > 0) {
+    categories.video = formData.videoPositions.map(pos => {
+      if (pos.includes('V1')) return 'Video Engineer (V1)';
+      if (pos.includes('Shader')) return 'Video Shader Operator';
+      if (pos.includes('Engineer')) return 'Video Technician';
+      return 'Video Technician';
+    });
+  }
+  
+  // Map lighting positions
+  if (formData.lightingPositions && formData.lightingPositions.length > 0) {
+    categories.lighting = formData.lightingPositions.map(pos => {
+      if (pos.includes('L1')) return 'Lighting Engineer (L1)';
+      if (pos.includes('Programmer')) return 'Lighting Programmer';
+      if (pos.includes('Designer')) return 'Lighting Designer (LD)';
+      if (pos.includes('Spot')) return 'Spot Operator';
+      return 'Lighting Technician';
+    });
+  }
+  
+  // Map management to leadership
+  if (formData.managementPositions && formData.managementPositions.length > 0) {
+    categories.leadership = formData.managementPositions.map(pos => {
+      if (pos.includes('Producer')) return 'Project Manager';
+      if (pos.includes('Director')) return 'Technical Director';
+      if (pos.includes('Coordinator')) return 'Steward';
+      return 'Project Manager';
+    });
+  }
+  
+  // Map assist positions to breakout
+  if (formData.assistPositions && formData.assistPositions.length > 0) {
+    categories.breakout = formData.assistPositions.map(pos => {
+      if (pos.includes('Audio')) return 'Breakout A1';
+      if (pos.includes('Video')) return 'Breakout V1';
+      if (pos.includes('Lighting')) return 'Breakout L1';
+      if (pos.includes('Operator')) return 'Breakout Operator';
+      return 'Breakout Technician';
+    });
+  }
+  
+  // Map equipment skills
+  const equipmentSkills = [];
+  [formData.audioGearOperated, formData.videoGearOperated, formData.lightingGearOperated].forEach(gear => {
+    if (gear && Array.isArray(gear)) {
+      gear.forEach(item => {
+        if (item && (item.toLowerCase().includes('forklift') || 
+                     item.toLowerCase().includes('scissor') || 
+                     item.toLowerCase().includes('boom') ||
+                     item.toLowerCase().includes('lull'))) {
+          equipmentSkills.push(item);
+        }
+      });
+    }
+  });
+  
+  if (equipmentSkills.length > 0) {
+    categories.equipment = [...new Set(equipmentSkills)]; // Remove duplicates
+  }
+  
+  // Convert arrays to comma-separated strings
+  Object.keys(categories).forEach(key => {
+    categories[key] = arrayToString(categories[key]);
+  });
+  
+  return categories;
 }
 
 // Helper function to convert array to comma-separated string
