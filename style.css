@@ -21,8 +21,8 @@ body {
 
 header {
     text-align: center;
-    margin-bottom: 40px;
-    padding: 30px 20px;
+    margin-bottom: 20px;
+    padding: 20px;
     background-color: #000;
     border-radius: 8px;
 }
@@ -41,7 +41,7 @@ header p {
 /* Form Styles */
 .elementor-form {
     background-color: #2a2a2a;
-    padding: 40px;
+    padding: 20px;
     border-radius: 8px;
     color: #fff;
 }
@@ -49,12 +49,12 @@ header p {
 .elementor-form-fields-wrapper {
     display: flex;
     flex-wrap: wrap;
-    gap: 20px;
+    gap: 10px;
 }
 
 /* Field Groups */
 .elementor-field-group {
-    margin-bottom: 20px;
+    margin-bottom: 10px;
 }
 
 .elementor-col-100 {
@@ -76,7 +76,7 @@ header p {
 /* Labels */
 .elementor-field-label {
     display: block;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
     font-weight: 600;
     color: #fff;
     font-size: 14px;
@@ -85,7 +85,7 @@ header p {
 /* Input Fields */
 .elementor-field {
     width: 100%;
-    padding: 10px 15px;
+    padding: 6px 10px;
     background-color: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 4px;
@@ -107,15 +107,15 @@ header p {
 /* Textarea */
 textarea.elementor-field {
     resize: vertical;
-    min-height: 100px;
+    min-height: 70px;
 }
 
 /* Checkbox and Radio Groups */
 .elementor-field-subgroup {
     display: flex;
     flex-wrap: wrap;
-    gap: 15px;
-    margin-top: 10px;
+    gap: 8px;
+    margin-top: 5px;
 }
 
 .elementor-field-subgroup.elementor-subgroup-inline {
@@ -125,8 +125,8 @@ textarea.elementor-field {
 .elementor-field-option {
     display: flex;
     align-items: center;
-    margin-right: 20px;
-    margin-bottom: 10px;
+    margin-right: 15px;
+    margin-bottom: 5px;
 }
 
 .elementor-field-option input[type="checkbox"],
@@ -157,26 +157,26 @@ textarea.elementor-field {
 
 /* HTML Sections */
 .elementor-field-type-html hr {
-    margin: 30px 0 20px;
+    margin: 15px 0 10px;
     border: none;
     border-top: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .elementor-field-type-html h2 {
     color: #f39c12;
-    font-size: 1.8rem;
-    margin-bottom: 10px;
+    font-size: 1.4rem;
+    margin-bottom: 5px;
 }
 
 /* Submit Button */
 .e-form__buttons {
-    margin-top: 30px;
+    margin-top: 15px;
     text-align: center;
 }
 
 .elementor-button {
     display: inline-block;
-    padding: 15px 40px;
+    padding: 12px 30px;
     background-color: #f39c12;
     color: #000;
     font-size: 16px;
@@ -201,7 +201,7 @@ textarea.elementor-field {
 /* Messages */
 .message {
     text-align: center;
-    padding: 40px;
+    padding: 25px;
     background-color: #2a2a2a;
     border-radius: 8px;
     color: #fff;
