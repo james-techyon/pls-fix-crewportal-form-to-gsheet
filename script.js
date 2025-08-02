@@ -266,6 +266,10 @@ function showLoading(show) {
 
 // Show success message
 function showSuccess() {
+    // Hide the form
+    document.getElementById('freelancerForm').style.display = 'none';
+    
+    // Show success message
     document.getElementById('successMessage').style.display = 'block';
     
     // Scroll to top
