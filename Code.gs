@@ -51,47 +51,55 @@ function createSheet() {
   // Create new sheet
   sheet = spreadsheet.insertSheet(SHEET_NAME);
   
-  // Define headers to match existing table structure
+  // Define headers to match Website Submissions tab exactly
   const headers = [
-    'Submitted on',
-    'Full Name',
-    'Company Name if any',
-    'Phone',
+    'Timestamp',
+    'First Name',
+    'Last Name', 
+    'Street Address',
+    'Street Address Line 2',
+    'City',
+    'State / Province',
+    'Postal / Zip Code',
+    'Phone Number',
     'Email',
-    'Direct Deposit ACH Request Form',
-    'W - 9 form',
-    'PLS Independent Contractor Agreement Rev',
-    'Notes',
-    'General',
-    'Audio',
-    'Video',
-    'Lighting',
-    'LED',
-    'Projection',
-    'Scenic',
-    'Camera',
-    'Information Technology',
-    'Breakout',
-    'Computer',
-    'Leadership',
-    'Equipment Operator',
+    // Audio Section
+    'Audio Positions',
+    'Please Select All Gear That You Operate',
     'Years of Experience',
-    'Billing Address',
-    'What State Do You Live In?',
-    'Major Cities You Work As A Local',
-    'How did you hear about us',
-    'Rates',
-    'Onboarding Docs Status',
-    'Quickbooks Singup Status',
-    'Chase Vendor Status',
-    'Organized in Contacts & by State',
-    'covid vaccination card',
-    'Onsite Ranking',
-    'Lead Proformance',
-    'select',
-    'checkbox',
-    'Docusign',
-    'GOOGLE review'
+    'Audio Shows',
+    'Main Strengths',
+    // Video Section  
+    'Video Positions',
+    'Please Select All Gear That You Operate',
+    'Years of Experience',
+    'Video Shows',
+    'Main Strengths',
+    // Lighting Section
+    'Lighting Positions',
+    'Please Select All Gear That You Operate',
+    'Years of Experience',
+    'Lighting Shows',
+    'Main Strengths',
+    // Management Section
+    'Management Positions',
+    'Management Skillsets',
+    'Years of Experience',
+    'Shows',
+    'Experience',
+    // Assist Positions Section
+    'Assist Positions',
+    'Equipment Comfort Level',
+    'Years of Experience',
+    'Shows',
+    'Main Strengths',
+    // Additional Info
+    'What companies have you worked with',
+    'Additional Skills',
+    'Additional Comments',
+    'Have You Worked With Prestige Before?',
+    'Referred By',
+    'LinkedIn Profile'
   ];
   
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
@@ -114,81 +122,55 @@ function appendFormData(sheet, formData) {
     );
   }
   
-  // Combine first and last name
-  const fullName = ((formData.firstName || '') + ' ' + (formData.lastName || '')).trim();
-  
-  // Combine address fields
-  const billingAddress = [
-    formData.streetAddress,
-    formData.streetAddress2,
-    formData.city,
-    formData.state,
-    formData.postalCode
-  ].filter(Boolean).join(', ');
-  
-  // Determine years of experience (take the highest value from all experience fields)
-  const yearsOfExperience = getHighestExperience([
-    formData.audioYearsExperience,
-    formData.videoYearsExperience,
-    formData.lightingYearsExperience,
-    formData.managementYearsExperience,
-    formData.assistYearsExperience
-  ]);
-  
-  // Map positions to skill categories
-  const skillCategories = mapSkillCategories(formData);
-  
-  // Combine all notes/comments
-  const notes = [
-    formData.additionalComments,
-    formData.audioStrengths ? 'Audio: ' + formData.audioStrengths : '',
-    formData.videoStrengths ? 'Video: ' + formData.videoStrengths : '',
-    formData.lightingStrengths ? 'Lighting: ' + formData.lightingStrengths : '',
-    formData.managementExperience ? 'Management: ' + formData.managementExperience : '',
-    formData.assistMainStrengths ? 'Assist: ' + formData.assistMainStrengths : ''
-  ].filter(Boolean).join(' | ');
-  
-  // Prepare row data in the correct order matching the headers
+  // Prepare row data matching the exact Website Submissions tab structure
   const rowData = [
-    timestamp,                                          // Submitted on
-    fullName,                                          // Full Name
-    formData.companiesWorkedWith || '',               // Company Name if any
-    formData.phoneNumber || '',                       // Phone
-    formData.email || '',                             // Email
-    '',                                                // Direct Deposit ACH Request Form
-    '',                                                // W - 9 form
-    '',                                                // PLS Independent Contractor Agreement Rev
-    notes,                                             // Notes
-    skillCategories.general || '',                    // General
-    skillCategories.audio || '',                      // Audio
-    skillCategories.video || '',                      // Video
-    skillCategories.lighting || '',                   // Lighting
-    skillCategories.led || '',                        // LED
-    skillCategories.projection || '',                 // Projection
-    skillCategories.scenic || '',                     // Scenic
-    skillCategories.camera || '',                     // Camera
-    skillCategories.it || '',                         // Information Technology
-    skillCategories.breakout || '',                   // Breakout
-    skillCategories.computer || '',                   // Computer
-    skillCategories.leadership || '',                 // Leadership
-    skillCategories.equipment || '',                  // Equipment Operator
-    yearsOfExperience,                                // Years of Experience
-    billingAddress,                                    // Billing Address
-    formData.state || '',                             // What State Do You Live In?
-    formData.city || '',                              // Major Cities You Work As A Local
-    formData.referredBy || '',                        // How did you hear about us
-    '',                                                // Rates
-    '',                                                // Onboarding Docs Status
-    '',                                                // Quickbooks Singup Status
-    '',                                                // Chase Vendor Status
-    '',                                                // Organized in Contacts & by State
-    profilePictureUrl,                                // covid vaccination card (using profile pic field)
-    '',                                                // Onsite Ranking
-    '',                                                // Lead Proformance
-    '',                                                // select
-    '',                                                // checkbox
-    '',                                                // Docusign
-    ''                                                 // GOOGLE review
+    timestamp,                                          // Timestamp
+    formData.firstName || '',                          // First Name
+    formData.lastName || '',                           // Last Name
+    formData.streetAddress || '',                      // Street Address
+    formData.streetAddress2 || '',                     // Street Address Line 2
+    formData.city || '',                               // City
+    formData.state || '',                              // State / Province
+    formData.postalCode || '',                         // Postal / Zip Code
+    formData.phoneNumber || '',                        // Phone Number
+    formData.email || '',                              // Email
+    // Audio Section
+    arrayToString(formData.audioPositions),            // Audio Positions
+    arrayToString(formData.audioGearOperated),         // Please Select All Gear That You Operate
+    formData.audioYearsExperience || '',               // Years of Experience
+    arrayToString(formData.audioShowExperience),       // Audio Shows
+    formData.audioStrengths || '',                     // Main Strengths
+    // Video Section
+    arrayToString(formData.videoPositions),            // Video Positions
+    arrayToString(formData.videoGearOperated),         // Please Select All Gear That You Operate
+    formData.videoYearsExperience || '',               // Years of Experience
+    arrayToString(formData.videoShowExperience),       // Video Shows
+    formData.videoStrengths || '',                     // Main Strengths
+    // Lighting Section
+    arrayToString(formData.lightingPositions),         // Lighting Positions
+    arrayToString(formData.lightingGearOperated),      // Please Select All Gear That You Operate
+    formData.lightingYearsExperience || '',            // Years of Experience
+    arrayToString(formData.lightingShowExperience),    // Lighting Shows
+    formData.lightingStrengths || '',                  // Main Strengths
+    // Management Section
+    arrayToString(formData.managementPositions),       // Management Positions
+    arrayToString(formData.managementSkillsets),       // Management Skillsets
+    formData.managementYearsExperience || '',          // Years of Experience
+    arrayToString(formData.managementShowExperience),  // Shows
+    formData.managementExperience || '',               // Experience
+    // Assist Positions Section
+    arrayToString(formData.assistPositions),           // Assist Positions
+    formData.assistEquipmentComfort || '',             // Equipment Comfort Level
+    formData.assistYearsExperience || '',              // Years of Experience
+    arrayToString(formData.assistShowExperience),      // Shows
+    formData.assistMainStrengths || '',                // Main Strengths
+    // Additional Info
+    formData.companiesWorkedWith || '',                // What companies have you worked with
+    formData.additionalSkills || '',                   // Additional Skills
+    formData.additionalComments || '',                 // Additional Comments
+    formData.workedWithPrestige || '',                 // Have You Worked With Prestige Before?
+    formData.referredBy || '',                         // Referred By
+    formData.linkedinProfile || ''                     // LinkedIn Profile
   ];
   
   // Append the row
@@ -200,140 +182,6 @@ function appendFormData(sheet, formData) {
   }
   
   return sheet.getLastRow();
-}
-
-// Helper function to get highest experience level
-function getHighestExperience(experienceFields) {
-  const experienceOrder = ['10+ Years', '5 - 10 Years', '2 - 4 Years', '0 - 1 Years'];
-  
-  for (let level of experienceOrder) {
-    for (let field of experienceFields) {
-      if (field && field.includes(level)) {
-        return level;
-      }
-    }
-  }
-  
-  // If any experience is provided but doesn't match the pattern, return the first non-empty one
-  for (let field of experienceFields) {
-    if (field) return field;
-  }
-  
-  return '';
-}
-
-// Helper function to map skills to categories
-function mapSkillCategories(formData) {
-  const categories = {
-    general: [],
-    audio: [],
-    video: [],
-    lighting: [],
-    led: [],
-    projection: [],
-    scenic: [],
-    camera: [],
-    it: [],
-    breakout: [],
-    computer: [],
-    leadership: [],
-    equipment: []
-  };
-  
-  // Map audio positions
-  if (formData.audioPositions && formData.audioPositions.length > 0) {
-    categories.audio = categories.audio.concat(
-      formData.audioPositions.map(pos => {
-        if (pos.includes('A1')) return 'Audio Engineer (A1)';
-        if (pos.includes('A2')) return 'Audio Engineer (A2)';
-        if (pos.includes('RF')) return 'Wireless Frequency Coordinator';
-        return 'Audio Technician';
-      })
-    );
-  }
-  
-  // Map video positions
-  if (formData.videoPositions && formData.videoPositions.length > 0) {
-    categories.video = categories.video.concat(
-      formData.videoPositions.map(pos => {
-        if (pos.includes('V1')) return 'Video Engineer (V1)';
-        if (pos.includes('Engineer')) return 'Video Technician';
-        if (pos.includes('Shader')) return 'Video Shader Operator';
-        return 'Video Technician';
-      })
-    );
-  }
-  
-  // Map lighting positions
-  if (formData.lightingPositions && formData.lightingPositions.length > 0) {
-    categories.lighting = categories.lighting.concat(
-      formData.lightingPositions.map(pos => {
-        if (pos.includes('L1')) return 'Lighting Engineer (L1)';
-        if (pos.includes('Programmer')) return 'Lighting Programmer';
-        if (pos.includes('Designer')) return 'Lighting Designer (LD)';
-        if (pos.includes('Spot')) return 'Spot Operator';
-        return 'Lighting Technician';
-      })
-    );
-  }
-  
-  // Map management positions to leadership
-  if (formData.managementPositions && formData.managementPositions.length > 0) {
-    categories.leadership = formData.managementPositions.map(pos => {
-      if (pos.includes('Producer')) return 'Project Manager';
-      if (pos.includes('Director')) return 'Technical Director';
-      if (pos.includes('Coordinator')) return 'Steward';
-      return 'Project Manager';
-    });
-  }
-  
-  // Map assist positions to breakout
-  if (formData.assistPositions && formData.assistPositions.length > 0) {
-    categories.breakout = formData.assistPositions.map(pos => {
-      if (pos.includes('Audio')) return 'Breakout A1';
-      if (pos.includes('Video')) return 'Breakout V1';
-      if (pos.includes('Lighting')) return 'Breakout L1';
-      if (pos.includes('Operator')) return 'Breakout Operator';
-      return 'Breakout Technician';
-    });
-  }
-  
-  // Map equipment skills
-  const equipmentSkills = [];
-  if (formData.audioGearOperated && formData.audioGearOperated.length > 0) {
-    equipmentSkills.push(...formData.audioGearOperated);
-  }
-  if (formData.videoGearOperated && formData.videoGearOperated.length > 0) {
-    equipmentSkills.push(...formData.videoGearOperated);
-  }
-  if (formData.lightingGearOperated && formData.lightingGearOperated.length > 0) {
-    equipmentSkills.push(...formData.lightingGearOperated);
-  }
-  if (formData.assistEquipmentComfort) {
-    equipmentSkills.push(formData.assistEquipmentComfort);
-  }
-  
-  // Check for specific equipment types
-  equipmentSkills.forEach(skill => {
-    if (skill && (skill.toLowerCase().includes('forklift') || 
-                  skill.toLowerCase().includes('scissor') || 
-                  skill.toLowerCase().includes('boom') ||
-                  skill.toLowerCase().includes('lull'))) {
-      if (!categories.equipment.includes(skill)) {
-        categories.equipment.push(skill);
-      }
-    }
-  });
-  
-  // Add general categories
-  categories.general.push('Stagehand', 'AV Technician');
-  
-  // Convert arrays to comma-separated strings
-  Object.keys(categories).forEach(key => {
-    categories[key] = arrayToString(categories[key]);
-  });
-  
-  return categories;
 }
 
 // Helper function to convert array to comma-separated string
