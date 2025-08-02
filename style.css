@@ -210,6 +210,8 @@ textarea.elementor-field {
 
 .success-message {
     border: 2px solid #27ae60;
+    margin: 20px auto;
+    max-width: 600px;
 }
 
 .success-message h2 {

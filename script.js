@@ -266,14 +266,21 @@ function showLoading(show) {
 
 // Show success message
 function showSuccess() {
+    // Get the form element
+    const form = document.getElementById('freelancerForm');
+    const successMessage = document.getElementById('successMessage');
+    
+    // Insert success message after the form
+    form.parentNode.insertBefore(successMessage, form.nextSibling);
+    
     // Hide the form
-    document.getElementById('freelancerForm').style.display = 'none';
+    form.style.display = 'none';
     
     // Show success message
-    document.getElementById('successMessage').style.display = 'block';
+    successMessage.style.display = 'block';
     
-    // Scroll to top
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Scroll success message into view smoothly
+    successMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 // Show error message
