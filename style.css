@@ -362,3 +362,160 @@ textarea.elementor-field {
     margin-top: 5px;
     display: block;
 }
+
+/* New Sections Styling */
+.optional-notice {
+    font-size: 0.8em;
+    color: #f39c12;
+    font-weight: normal;
+}
+
+.section-notice {
+    background-color: rgba(243, 156, 18, 0.1);
+    border: 1px solid rgba(243, 156, 18, 0.3);
+    color: #f39c12;
+    padding: 10px 15px;
+    border-radius: 4px;
+    margin: 10px 0;
+    font-size: 14px;
+}
+
+/* Terms Container */
+.terms-container {
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    border-radius: 4px;
+    max-height: 300px;
+    overflow-y: auto;
+    margin: 15px 0;
+}
+
+.terms-container h3 {
+    color: #f39c12;
+    margin-bottom: 15px;
+    font-size: 1.2rem;
+}
+
+.terms-container h4 {
+    color: #fff;
+    margin: 15px 0 10px;
+    font-size: 1rem;
+}
+
+.terms-container p {
+    color: #ddd;
+    line-height: 1.6;
+    margin-bottom: 10px;
+}
+
+/* Scrollbar styling for terms */
+.terms-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.terms-container::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+.terms-container::-webkit-scrollbar-thumb {
+    background: rgba(243, 156, 18, 0.5);
+    border-radius: 4px;
+}
+
+.terms-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(243, 156, 18, 0.7);
+}
+
+/* Eligibility Warning */
+.eligibility-warning {
+    background-color: rgba(231, 76, 60, 0.1);
+    border: 2px solid #e74c3c;
+    color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    margin: 20px 0;
+}
+
+.eligibility-warning h3 {
+    color: #e74c3c;
+    margin-bottom: 10px;
+}
+
+.eligibility-warning p {
+    margin-bottom: 15px;
+}
+
+.eligibility-warning ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.eligibility-warning li {
+    padding: 5px 0;
+    padding-left: 25px;
+    position: relative;
+}
+
+.eligibility-warning li:before {
+    content: '❌';
+    position: absolute;
+    left: 0;
+}
+
+/* Select styling */
+select.elementor-field {
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    cursor: pointer;
+}
+
+select.elementor-field option {
+    background-color: #2a2a2a;
+    color: #fff;
+}
+
+/* Banking fields specific styling */
+input[type="password"].elementor-field {
+    letter-spacing: 2px;
+}
+
+/* Signature field styling */
+#form-field-field_electronic_signature {
+    font-family: 'Brush Script MT', cursive;
+    font-size: 18px;
+    font-style: italic;
+}
+
+/* File upload enhancement */
+.elementor-upload-field {
+    position: relative;
+    text-align: center;
+    padding: 20px;
+}
+
+.elementor-upload-field::before {
+    content: '📄 Click to upload or drag and drop';
+    display: block;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 10px;
+}
+
+/* Responsive adjustments for new sections */
+@media (max-width: 768px) {
+    .terms-container {
+        max-height: 200px;
+        padding: 15px;
+    }
+    
+    .section-notice {
+        font-size: 13px;
+        padding: 8px 12px;
+    }
+    
+    .eligibility-warning {
+        padding: 15px;
+    }
+}

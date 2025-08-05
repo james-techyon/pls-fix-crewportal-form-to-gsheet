@@ -8,10 +8,10 @@ const OPS_SHEET_NAME = 'Operations Ready';
 
 // Email notification configuration
 const EMAIL_CONFIG = {
-  to: 'james@techyon.com',        // Primary recipient
-  cc: 'jmichaeldeseno@gmail.com', // CC recipient(s) - can be comma-separated list
-  sendToApplicant: true,           // Whether to also send confirmation to applicant
-  sendToAdmins: true               // Whether to send notification to admin emails above
+  to: 'kyle@prestigelaborsolutions.com, ray@prestigelaborsolutions.com',  // Primary recipients (comma-separated)
+  cc: 'rosie@prestigelaborsolutions.com',                                 // CC recipient(s) - can be comma-separated list
+  sendToApplicant: true,                                                  // Whether to also send confirmation to applicant
+  sendToAdmins: true                                                      // Whether to send notification to admin emails above
 };
 
 // Main function to handle POST requests
@@ -34,7 +34,7 @@ function doPost(e) {
       opsSheet = createOpsSheet(spreadsheet);
     }
     
-    // Handle file upload if present
+    // Handle file uploads
     let profilePictureUrl = '';
     if (formData.profilePictureData) {
       profilePictureUrl = uploadFile(
@@ -44,11 +44,20 @@ function doPost(e) {
       );
     }
     
+    let w9FileUrl = '';
+    if (formData.w9FileData) {
+      w9FileUrl = uploadFile(
+        formData.w9FileData,
+        formData.w9FileName || 'w9-form.pdf',
+        formData.w9FileMimeType || 'application/pdf'
+      );
+    }
+    
     // Append raw data to Raw Submissions sheet
-    const rawRow = appendRawData(rawSheet, formData, profilePictureUrl);
+    const rawRow = appendRawData(rawSheet, formData, profilePictureUrl, w9FileUrl);
     
     // Transform and append to Operations Ready sheet
-    const opsRow = appendTransformedData(opsSheet, formData, profilePictureUrl);
+    const opsRow = appendTransformedData(opsSheet, formData, profilePictureUrl, w9FileUrl);
     
     // Send email notifications
     sendEmailNotifications(formData, rawRow, opsRow);
@@ -124,7 +133,26 @@ function createRawSheet(spreadsheet) {
     'Worked With Prestige Before',
     'Referred By',
     'LinkedIn Profile',
-    'Profile Picture URL'
+    'Profile Picture URL',
+    // Tax Information
+    'Tax Method',
+    'W-9 File URL',
+    'Legal Business Name',
+    'Business Type',
+    'Tax ID',
+    // Banking Details
+    'Bank Name',
+    'Account Type',
+    'Routing Number',
+    'Account Number',
+    // Terms & Conditions
+    'Terms Accepted',
+    'Electronic Signature',
+    'Signature Date',
+    // Eligibility Tracking
+    'Eligibility Status',
+    'Is Eligible',
+    'Missing Requirements'
   ];
   
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
@@ -178,7 +206,11 @@ function createOpsSheet(spreadsheet) {
     'select',
     'checkbox',
     'Docusign',
-    'GOOGLE review'
+    'GOOGLE review',
+    // New eligibility tracking columns
+    'Work Eligibility Status',
+    'Payment Setup Status',
+    'Missing Requirements'
   ];
   
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
@@ -188,7 +220,7 @@ function createOpsSheet(spreadsheet) {
 }
 
 // Function to append raw data to Raw Submissions sheet
-function appendRawData(sheet, formData, profilePictureUrl) {
+function appendRawData(sheet, formData, profilePictureUrl, w9FileUrl) {
   const timestamp = new Date();
   
   // Direct mapping of form data without transformation
@@ -240,7 +272,26 @@ function appendRawData(sheet, formData, profilePictureUrl) {
     formData.workedWithPrestige || '',
     formData.referredBy || '',
     formData.linkedinProfile || '',
-    profilePictureUrl
+    profilePictureUrl,
+    // Tax Information
+    formData.taxMethod || '',
+    w9FileUrl || '',
+    formData.legalBusinessName || '',
+    formData.businessType || '',
+    formData.taxId || '',
+    // Banking Details
+    formData.bankName || '',
+    formData.accountType || '',
+    formData.routingNumber || '',
+    formData.accountNumber || '',
+    // Terms & Conditions
+    arrayToString(formData.termsAccepted),
+    formData.electronicSignature || '',
+    formData.signatureDate || '',
+    // Eligibility Tracking
+    formData.eligibilityStatus || '',
+    formData.isEligible || false,
+    formData.missingRequirements || ''
   ];
   
   sheet.appendRow(rowData);
@@ -248,7 +299,7 @@ function appendRawData(sheet, formData, profilePictureUrl) {
 }
 
 // Function to append transformed data to Operations Ready sheet
-function appendTransformedData(sheet, formData, profilePictureUrl) {
+function appendTransformedData(sheet, formData, profilePictureUrl, w9FileUrl) {
   const timestamp = new Date();
   
   // Combine first and last name
@@ -285,6 +336,14 @@ function appendTransformedData(sheet, formData, profilePictureUrl) {
     formData.assistMainStrengths ? 'Assist: ' + formData.assistMainStrengths : ''
   ].filter(Boolean).join(' | ');
   
+  // Determine document status
+  const hasDirectDeposit = formData.bankName && formData.accountNumber && formData.routingNumber ? 'Yes' : 'No';
+  const hasW9 = w9FileUrl || (formData.taxId && formData.businessType) ? 'Yes' : 'No';
+  const hasAgreement = formData.termsAccepted && formData.electronicSignature ? 'Yes' : 'No';
+  
+  // Determine payment setup status
+  const paymentSetupStatus = hasDirectDeposit === 'Yes' ? 'COMPLETE' : 'INCOMPLETE';
+  
   // Transformed row data
   const rowData = [
     timestamp,                                    // Submitted on
@@ -292,9 +351,9 @@ function appendTransformedData(sheet, formData, profilePictureUrl) {
     formData.companiesWorkedWith || '',          // Company Name if any
     formData.phoneNumber || '',                  // Phone
     formData.email || '',                        // Email
-    '',                                           // Direct Deposit ACH Request Form
-    '',                                           // W - 9 form
-    '',                                           // PLS Independent Contractor Agreement Rev
+    hasDirectDeposit,                            // Direct Deposit ACH Request Form
+    hasW9,                                        // W - 9 form
+    hasAgreement,                                // PLS Independent Contractor Agreement Rev
     notes,                                        // Notes
     skills.general || '',                        // General
     skills.audio || '',                          // Audio
@@ -325,7 +384,10 @@ function appendTransformedData(sheet, formData, profilePictureUrl) {
     '',                                           // select
     '',                                           // checkbox
     '',                                           // Docusign
-    ''                                            // GOOGLE review
+    '',                                           // GOOGLE review
+    formData.eligibilityStatus || '',           // Work Eligibility Status
+    paymentSetupStatus,                          // Payment Setup Status
+    formData.missingRequirements || ''          // Missing Requirements
   ];
   
   sheet.appendRow(rowData);
@@ -527,7 +589,11 @@ function sendAdminNotification(formData, rawRow, opsRow) {
     formData.assistYearsExperience
   ]);
   
-  const subject = `New Freelancer Application: ${fullName}`;
+  const subject = `New Freelancer Application: ${fullName} - ${formData.isEligible ? 'ELIGIBLE' : 'INELIGIBLE'}`;
+  
+  // Determine eligibility styling
+  const eligibilityColor = formData.isEligible ? '#27ae60' : '#e74c3c';
+  const eligibilityText = formData.isEligible ? 'ELIGIBLE' : 'INELIGIBLE';
   
   const htmlBody = `
 <!DOCTYPE html>
@@ -543,12 +609,18 @@ function sendAdminNotification(formData, rawRow, opsRow) {
     .skills { background-color: #e8f4f8; padding: 10px; border-left: 4px solid #3498db; margin: 10px 0; }
     .footer { margin-top: 30px; padding: 15px; background-color: #2c3e50; color: white; border-radius: 5px; }
     .button { display: inline-block; padding: 10px 20px; background-color: #27ae60; color: white; text-decoration: none; border-radius: 5px; margin: 10px 5px; }
+    .eligibility-status { font-size: 18px; font-weight: bold; padding: 10px; background-color: ${eligibilityColor}; color: white; border-radius: 5px; text-align: center; margin: 20px 0; }
+    .warning { background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 10px; border-radius: 5px; margin: 10px 0; }
   </style>
 </head>
 <body>
   <div class="header">
     <h2>New Freelancer Application Received</h2>
     <p>Submitted: ${timestamp}</p>
+  </div>
+  
+  <div class="eligibility-status">
+    Work Eligibility Status: ${eligibilityText}
   </div>
   
   <div class="section">
@@ -597,6 +669,16 @@ function sendAdminNotification(formData, rawRow, opsRow) {
   <div class="section">
     <h3>Additional Comments</h3>
     <p>${formData.additionalComments}</p>
+  </div>
+  ` : ''}
+  
+  ${formData.missingRequirements ? `
+  <div class="warning">
+    <h3>Missing Requirements</h3>
+    <p><strong>The following items are required for this contractor to be eligible for work/payment:</strong></p>
+    <ul>
+      ${formData.missingRequirements.split(', ').map(req => `<li>${req}</li>`).join('')}
+    </ul>
   </div>
   ` : ''}
   

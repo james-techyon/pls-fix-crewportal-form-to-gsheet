@@ -6,6 +6,16 @@ const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxtpezLr
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('freelancerForm');
     form.addEventListener('submit', handleSubmit);
+    
+    // Set today's date for signature field
+    const today = new Date().toLocaleDateString('en-US');
+    const signatureDateField = document.getElementById('form-field-field_signature_date');
+    if (signatureDateField) {
+        signatureDateField.value = today;
+    }
+    
+    // Check eligibility on form change
+    form.addEventListener('change', checkEligibilityStatus);
 });
 
 // Handle form submission
@@ -23,11 +33,17 @@ async function handleSubmit(e) {
     // Collect form data
     const formData = collectFormData();
     
+    // Calculate eligibility
+    const eligibility = calculateEligibility(formData);
+    formData.eligibilityStatus = eligibility.status;
+    formData.isEligible = eligibility.isEligible;
+    formData.missingRequirements = eligibility.missingRequirements.join(', ');
+    
     // Show loading state
     showLoading(true);
     
     try {
-        // Handle file upload if present
+        // Handle profile picture upload if present
         const fileInput = document.getElementById('form-field-field_04f88ef');
         if (fileInput.files.length > 0) {
             const file = fileInput.files[0];
@@ -37,8 +53,19 @@ async function handleSubmit(e) {
             formData.profilePictureMimeType = file.type;
         }
         
+        // Handle W-9 upload if present
+        const w9Input = document.getElementById('form-field-field_w9_upload');
+        if (w9Input && w9Input.files.length > 0) {
+            const file = w9Input.files[0];
+            const base64 = await fileToBase64(file);
+            formData.w9FileData = base64;
+            formData.w9FileName = file.name;
+            formData.w9FileMimeType = file.type;
+        }
+        
         // Log form data for debugging
         console.log('Submitting form data:', formData);
+        console.log('Eligibility status:', eligibility);
         
         // Submit to Google Apps Script
         const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
@@ -53,7 +80,7 @@ async function handleSubmit(e) {
         // Since we're using no-cors, we can't read the response
         // Assume success if no error is thrown
         console.log('Form submitted successfully');
-        showSuccess();
+        showSuccessWithEligibility(eligibility);
         
     } catch (error) {
         console.error('Submission error:', error);
@@ -91,6 +118,21 @@ function validateForm() {
         isValid = false;
     }
     
+    // Validate account numbers match
+    const accountNum = document.getElementById('form-field-field_account_number');
+    const accountConfirm = document.getElementById('form-field-field_account_number_confirm');
+    if (accountNum.value && accountConfirm.value && accountNum.value !== accountConfirm.value) {
+        showFieldError(accountConfirm, 'Account numbers do not match');
+        isValid = false;
+    }
+    
+    // Validate routing number
+    const routingNum = document.getElementById('form-field-field_routing_number');
+    if (routingNum.value && routingNum.value.length !== 9) {
+        showFieldError(routingNum, 'Routing number must be 9 digits');
+        isValid = false;
+    }
+    
     return isValid;
 }
 
@@ -100,7 +142,7 @@ function collectFormData() {
     const formData = {};
     
     // Get all text inputs, textareas, and selects
-    const inputs = form.querySelectorAll('input[type="text"], input[type="email"], input[type="tel"], input[type="number"], textarea');
+    const inputs = form.querySelectorAll('input[type="text"], input[type="email"], input[type="tel"], input[type="number"], input[type="password"], textarea, select');
     inputs.forEach(input => {
         const fieldName = getFieldName(input.name);
         if (fieldName) {
@@ -192,7 +234,23 @@ const fieldIdToName = {
     'field_2e7849d': 'additionalComments',
     'field_1ca2066': 'workedWithPrestige',
     'field_dde637d': 'referredBy',
-    'field_a3996a1': 'linkedinProfile'
+    'field_a3996a1': 'linkedinProfile',
+    // Tax Information
+    'field_tax_method': 'taxMethod',
+    'field_w9_upload': 'w9Upload',
+    'field_legal_business_name': 'legalBusinessName',
+    'field_business_type': 'businessType',
+    'field_tax_id': 'taxId',
+    // Banking Details
+    'field_bank_name': 'bankName',
+    'field_account_type': 'accountType',
+    'field_routing_number': 'routingNumber',
+    'field_account_number': 'accountNumber',
+    'field_account_number_confirm': 'accountNumberConfirm',
+    // Terms & Conditions
+    'field_terms_accepted': 'termsAccepted',
+    'field_electronic_signature': 'electronicSignature',
+    'field_signature_date': 'signatureDate'
 };
 
 // Show field error
@@ -283,6 +341,53 @@ function showSuccess() {
     successMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
+// Show success message with eligibility status
+function showSuccessWithEligibility(eligibility) {
+    // Get the form element
+    const form = document.getElementById('freelancerForm');
+    const successMessage = document.getElementById('successMessage');
+    
+    // Update success message based on eligibility
+    const h2 = successMessage.querySelector('h2');
+    const p = successMessage.querySelectorAll('p')[1]; // Second paragraph
+    
+    if (eligibility.isEligible) {
+        h2.innerHTML = '✓ Application Submitted Successfully!';
+        if (eligibility.missingRequirements.length > 0) {
+            p.innerHTML = `Thank you for submitting your application to Prestige Labor Solutions.<br><br>
+                          <strong style="color: #f39c12;">⚠️ You are ELIGIBLE for work assignments!</strong><br>
+                          However, to receive payments, please complete:<br>
+                          <ul style="text-align: left; display: inline-block;">
+                          ${eligibility.missingRequirements.map(req => `<li>${req}</li>`).join('')}
+                          </ul>`;
+        } else {
+            p.innerHTML = `Thank you for submitting your application to Prestige Labor Solutions.<br><br>
+                          <strong style="color: #27ae60;">✅ You are FULLY ELIGIBLE for work assignments and payments!</strong>`;
+        }
+    } else {
+        h2.innerHTML = '⚠️ Application Submitted - Action Required';
+        p.innerHTML = `Thank you for submitting your application to Prestige Labor Solutions.<br><br>
+                      <strong style="color: #e74c3c;">❌ You are currently INELIGIBLE for work assignments.</strong><br><br>
+                      To become eligible, please complete the following:<br>
+                      <ul style="text-align: left; display: inline-block;">
+                      ${eligibility.missingRequirements.map(req => `<li>${req}</li>`).join('')}
+                      </ul><br>
+                      You can update your application at any time through the Crew Portal.`;
+    }
+    
+    // Insert success message after the form
+    form.parentNode.insertBefore(successMessage, form.nextSibling);
+    
+    // Hide the form
+    form.style.display = 'none';
+    
+    // Show success message
+    successMessage.style.display = 'block';
+    
+    // Scroll success message into view smoothly
+    successMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
 // Show error message
 function showError(message) {
     document.getElementById('errorText').textContent = message;
@@ -290,4 +395,90 @@ function showError(message) {
     
     // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Toggle tax fields based on selection
+function toggleTaxFields(value) {
+    const w9Field = document.getElementById('w9UploadField');
+    const taxFields = document.getElementById('taxInfoFields');
+    
+    if (value === 'Upload W-9') {
+        w9Field.style.display = 'block';
+        taxFields.style.display = 'none';
+    } else if (value === 'Enter Information') {
+        w9Field.style.display = 'none';
+        taxFields.style.display = 'block';
+    } else {
+        w9Field.style.display = 'none';
+        taxFields.style.display = 'none';
+    }
+}
+
+// Calculate eligibility status
+function calculateEligibility(formData) {
+    const eligibility = {
+        isEligible: true,
+        missingRequirements: [],
+        status: 'ELIGIBLE'
+    };
+    
+    // Check tax info
+    const hasW9 = formData.w9FileUrl || (formData.w9Upload && formData.w9Upload !== '');
+    const hasTaxInfo = formData.taxId && formData.businessType && formData.legalBusinessName;
+    
+    if (!hasW9 && !hasTaxInfo) {
+        eligibility.isEligible = false;
+        eligibility.missingRequirements.push('Tax Information (W-9 or Tax ID)');
+    }
+    
+    // Check banking (required for payment but not eligibility)
+    if (!formData.routingNumber || !formData.accountNumber) {
+        eligibility.missingRequirements.push('Banking Details (Required for Payment)');
+    }
+    
+    // Check terms acceptance
+    if (!formData.termsAccepted || formData.termsAccepted.length === 0) {
+        eligibility.isEligible = false;
+        eligibility.missingRequirements.push('Terms & Conditions Agreement');
+    }
+    
+    // Check e-signature
+    if (!formData.electronicSignature) {
+        eligibility.isEligible = false;
+        eligibility.missingRequirements.push('Electronic Signature');
+    }
+    
+    // Set status
+    if (!eligibility.isEligible) {
+        eligibility.status = 'INELIGIBLE - Missing: ' + eligibility.missingRequirements.join(', ');
+    } else if (eligibility.missingRequirements.length > 0) {
+        eligibility.status = 'ELIGIBLE - Payment Pending: ' + eligibility.missingRequirements.join(', ');
+    }
+    
+    return eligibility;
+}
+
+// Check eligibility status and show warning if needed
+function checkEligibilityStatus() {
+    const formData = collectFormData();
+    const eligibility = calculateEligibility(formData);
+    
+    const warningDiv = document.getElementById('eligibilityWarning');
+    const requirementsList = document.getElementById('missingRequirementsList');
+    
+    if (eligibility.missingRequirements.length > 0) {
+        // Show warning
+        warningDiv.style.display = 'block';
+        
+        // Clear and populate requirements list
+        requirementsList.innerHTML = '';
+        eligibility.missingRequirements.forEach(req => {
+            const li = document.createElement('li');
+            li.textContent = req;
+            requirementsList.appendChild(li);
+        });
+    } else {
+        // Hide warning
+        warningDiv.style.display = 'none';
+    }
 }
